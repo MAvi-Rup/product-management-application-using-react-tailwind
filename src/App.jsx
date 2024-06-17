@@ -1,9 +1,10 @@
 import "./App.css";
+import ProductPage from "./components/Paages/ProductPage";
 
 function App() {
   return (
     <>
-      <h1>Product Management Application</h1>
+      <ProductPage />
     </>
   );
 }
