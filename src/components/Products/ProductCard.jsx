@@ -27,8 +27,8 @@ const ProductCard = ({ product, addToCart }) => {
       </p>
 
       <div className="mt-4">
-        <h3 className="font-semibold">Variants:</h3>
-        <div className="flex flex-wrap">
+        <div className="flex flex-wrap items-center">
+          <span className="font-semibold">Varients</span>
           {product.variants.map((variant) => (
             <button
               key={variant.id}

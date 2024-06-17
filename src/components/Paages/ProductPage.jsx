@@ -1,6 +1,5 @@
 // src/pages/AllProductsPage.js
 import React, { useEffect, useState } from "react";
-
 import { useCart } from "../../context/CartContext";
 import ProductFilter from "../Products/ProductFilter";
 import ProductList from "../Products/ProductList";
@@ -14,20 +13,29 @@ const ProductPage = () => {
     category: "",
     subCategory: "",
     brand: "",
-    priceRange: [0, 1000],
+    priceRange: [0, 100000],
   });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const { addToCart } = useCart();
 
   useEffect(() => {
-    fetchProducts();
-  }, [searchQuery, filters, page]);
+    setPage(0);
+    setProducts([]);
+    fetchProducts(true);
+  }, [searchQuery, filters]);
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    if (page > 0) {
+      fetchProducts();
+    }
+  }, [page]);
+
+  const fetchProducts = async (reset = false) => {
     setLoading(true);
-    let url = `https://api.zonesparks.org/products/?search=${searchQuery}&page=${page}`;
+    let url = `https://api.zonesparks.org/products/?page=${page}`;
 
+    if (searchQuery) url += `&keyword=${searchQuery}`;
     if (filters.category) url += `&category=${filters.category}`;
     if (filters.subCategory) url += `&subCategory=${filters.subCategory}`;
     if (filters.brand) url += `&brand=${filters.brand}`;
@@ -37,7 +45,19 @@ const ProductPage = () => {
 
     const response = await fetch(url);
     const data = await response.json();
-    setProducts((prevProducts) => [...prevProducts, ...data.products]);
+
+    if (reset) {
+      setProducts(data.products);
+    } else {
+      setProducts((prevProducts) => {
+        // Create a new set to remove duplicates
+        const uniqueProducts = new Map(
+          [...prevProducts, ...data.products].map((item) => [item.id, item])
+        );
+        return [...uniqueProducts.values()];
+      });
+    }
+
     setLoading(false);
   };
 
@@ -45,9 +65,11 @@ const ProductPage = () => {
     if (
       window.innerHeight + document.documentElement.scrollTop !==
         document.documentElement.offsetHeight ||
-      loading
-    )
+      loading ||
+      products.length === 0 // Check if there are no products to fetch
+    ) {
       return;
+    }
     setPage((prevPage) => prevPage + 1);
   };
 
