@@ -1,6 +1,4 @@
-// src/pages/AllProductsPage.js
-import React, { useEffect, useState } from "react";
-import { useCart } from "../../context/CartContext";
+import { useEffect, useState } from "react";
 import ProductFilter from "../Products/ProductFilter";
 import ProductList from "../Products/ProductList";
 import ProductSearchBar from "../Products/ProductSearchBar";
@@ -17,7 +15,7 @@ const ProductPage = () => {
   });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
-  const { addToCart } = useCart();
+  const [cart, setCart] = useState([]);
 
   useEffect(() => {
     setPage(0);
@@ -48,17 +46,16 @@ const ProductPage = () => {
 
     if (reset) {
       setProducts(data.products);
+      setLoading(false);
     } else {
       setProducts((prevProducts) => {
-        // Create a new set to remove duplicates
         const uniqueProducts = new Map(
           [...prevProducts, ...data.products].map((item) => [item.id, item])
         );
+        setLoading(uniqueProducts.size === prevProducts.length);
         return [...uniqueProducts.values()];
       });
     }
-
-    setLoading(false);
   };
 
   const handleScroll = () => {
@@ -66,7 +63,7 @@ const ProductPage = () => {
       window.innerHeight + document.documentElement.scrollTop !==
         document.documentElement.offsetHeight ||
       loading ||
-      products.length === 0 // Check if there are no products to fetch
+      products.length === 0
     ) {
       return;
     }
@@ -78,15 +75,25 @@ const ProductPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading]);
 
+  const addToCart = (product) => {
+    setCart((prevCart) => [...prevCart, product]);
+  };
+
   return (
     <div className="container mx-auto p-4">
-      <ProductSearchBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
-      <ProductFilter filters={filters} setFilters={setFilters} />
-      <ProductList products={products} addToCart={addToCart} />
-      {loading && <Loading />}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-4">
+          <ProductFilter filters={filters} setFilters={setFilters} />
+        </div>
+        <div className="col-span-8">
+          <ProductSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+          <ProductList products={products} addToCart={addToCart} />
+          {!loading ? <></> : <Loading />}
+        </div>
+      </div>
     </div>
   );
 };

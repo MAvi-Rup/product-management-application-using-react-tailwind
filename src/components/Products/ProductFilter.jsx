@@ -36,21 +36,6 @@ const ProductFilter = ({ filters, setFilters }) => {
       slug: "sweaters-2299d92b-3787-484d-b554-3e7c74c17107",
     },
     { id: 4, name: "Shirts", slug: "shirts-6e8d4f9d-8f9e-5c2b7c6b-7d1c9f8b" },
-    {
-      id: 5,
-      name: "Smartphones",
-      slug: "smartphones-4f9d8f9e-5c2b7c6b-7d1c9f8b-6e8d",
-    },
-    {
-      id: 6,
-      name: "Laptops",
-      slug: "laptops-9d8f9e5c-2b7c6b7d-1c9f8b6e-8d4f9d",
-    },
-    {
-      id: 7,
-      name: "Kitchen Appliances",
-      slug: "kitchenappliances-8d3c4c8e-9c8d6c9e-5d2b9c8f-2c4f9b",
-    },
   ];
 
   const brands = [
