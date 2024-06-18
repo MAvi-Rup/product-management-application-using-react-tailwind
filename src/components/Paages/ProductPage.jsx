@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProductFilter from "../Products/ProductFilter";
 import ProductList from "../Products/ProductList";
 import ProductSearchBar from "../Products/ProductSearchBar";
-import Loading from "../shared/Loading";
 
 const ProductPage = () => {
   const [products, setProducts] = useState([]);
@@ -15,11 +14,14 @@ const ProductPage = () => {
   });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [cart, setCart] = useState([]);
+  const loaderRef = useRef(null);
 
   useEffect(() => {
     setPage(0);
     setProducts([]);
+    setHasMore(true);
     fetchProducts(true);
   }, [searchQuery, filters]);
 
@@ -31,28 +33,46 @@ const ProductPage = () => {
 
   const fetchProducts = async (reset = false) => {
     setLoading(true);
-    let url = `https://api.zonesparks.org/products/?page=${page}`;
+    let baseUrl = "https://api.zonesparks.org/products/";
 
-    if (searchQuery) url += `&keyword=${searchQuery}`;
-    if (filters.category) url += `&category=${filters.category}`;
-    if (filters.subCategory) url += `&subCategory=${filters.subCategory}`;
-    if (filters.brand) url += `&brand=${filters.brand}`;
-    if (filters.priceRange) {
-      url += `&price_min=${filters.priceRange[0]}&price_max=${filters.priceRange[1]}`;
+    if (
+      searchQuery &&
+      !filters.category &&
+      !filters.subCategory &&
+      !filters.brand &&
+      !filters.priceRange
+    ) {
+      baseUrl += `?keyword=${searchQuery}`;
+    } else {
+      baseUrl += "?";
+      if (filters.category) baseUrl += `category=${filters.category}&`;
+      if (filters.subCategory) baseUrl += `subCategory=${filters.subCategory}&`;
+      if (filters.brand) baseUrl += `brand=${filters.brand}&`;
+      if (filters.priceRange) {
+        baseUrl += `price_min=${filters.priceRange[0]}&price_max=${filters.priceRange[1]}&`;
+      }
+      if (searchQuery) baseUrl += `keyword=${searchQuery}&`;
+      baseUrl = baseUrl.slice(0, -1); // Remove the trailing '&'
     }
 
-    const response = await fetch(url);
+    if (page > 0) {
+      baseUrl += `&page=${page}`;
+    }
+
+    const response = await fetch(baseUrl);
     const data = await response.json();
 
     if (reset) {
       setProducts(data.products);
+      setHasMore(data.products.length !== 0);
       setLoading(false);
     } else {
       setProducts((prevProducts) => {
         const uniqueProducts = new Map(
           [...prevProducts, ...data.products].map((item) => [item.id, item])
         );
-        setLoading(uniqueProducts.size === prevProducts.length);
+        setHasMore(uniqueProducts.size !== prevProducts.length);
+        setLoading(false);
         return [...uniqueProducts.values()];
       });
     }
@@ -63,7 +83,7 @@ const ProductPage = () => {
       window.innerHeight + document.documentElement.scrollTop !==
         document.documentElement.offsetHeight ||
       loading ||
-      products.length === 0
+      !hasMore
     ) {
       return;
     }
@@ -71,9 +91,25 @@ const ProductPage = () => {
   };
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [loading]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prevPage) => prevPage + 1);
+        }
+      },
+      { rootMargin: "100px" }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [hasMore]);
 
   const addToCart = (product) => {
     setCart((prevCart) => [...prevCart, product]);
@@ -91,7 +127,10 @@ const ProductPage = () => {
             setSearchQuery={setSearchQuery}
           />
           <ProductList products={products} addToCart={addToCart} />
-          {!loading ? <></> : <Loading />}
+          <div ref={loaderRef}>
+            {hasMore && <div>Loading more products...</div>}
+            {!hasMore && <p>No products left</p>}
+          </div>
         </div>
       </div>
     </div>
