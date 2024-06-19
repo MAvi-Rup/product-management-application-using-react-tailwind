@@ -69,14 +69,13 @@ const ProductFilter = ({ filters, setFilters }) => {
       name: "North Peak",
       slug: "northpeak-60cd5407-3f3e-430c-bae5-9e61c1827c2c",
     },
-
     {
-      id: 9,
+      id: 7,
       name: "POLO CLUB",
       slug: "poloclub-f6ef9f62-7a80-4185-a588-3a4d70d8bdef",
     },
     {
-      id: 9,
+      id: 8,
       name: "C&A",
       slug: "ca-49223b72-ed9f-47d4-a8e7-1293d3f65e1b",
     },
@@ -95,6 +94,7 @@ const ProductFilter = ({ filters, setFilters }) => {
   };
 
   const handleSubCategoryChange = (e) => {
+    setSelectedCategory("");
     setSelectedSubCategory(e.target.value);
     setFilters({ ...filters, subCategory: e.target.value });
   };
