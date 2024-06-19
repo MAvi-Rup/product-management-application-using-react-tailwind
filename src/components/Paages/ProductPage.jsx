@@ -20,6 +20,8 @@ const ProductPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const loaderRef = React.useRef(null);
 
+  const accessToken = localStorage.getItem("accessToken");
+
   useEffect(() => {
     setPage(0);
     setProducts([]);
@@ -34,13 +36,7 @@ const ProductPage = () => {
   }, [page]);
 
   useEffect(() => {
-    const fetchCart = async () => {
-      setIsLoading(true);
-      const cart = await fetchUserCart();
-      setUserCart(cart);
-      setIsLoading(false);
-    };
-    fetchCart();
+    fetchUserCart();
   }, []);
 
   const fetchProducts = async (reset = false) => {
@@ -82,11 +78,14 @@ const ProductPage = () => {
 
   const fetchUserCart = async () => {
     try {
-      const response = await axios.get("https://api.zonesparks.org/cart/");
-      return response.data;
+      const response = await axios.get("https://api.zonesparks.org/cart/", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setUserCart(response.data);
     } catch (error) {
       console.error("Error fetching user cart:", error);
-      return [];
     }
   };
 
@@ -100,6 +99,11 @@ const ProductPage = () => {
           size,
           image,
           quantity,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         }
       );
       return response.data;
@@ -118,7 +122,12 @@ const ProductPage = () => {
             id: itemId,
             quantity: newQuantity,
           },
-        ]
+        ],
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
       return response.data;
     } catch (error) {
@@ -129,7 +138,12 @@ const ProductPage = () => {
 
   const handleAddToCart = async (product, variant) => {
     const { id, color, size, images, variants } = variant;
-    const image = images.findIndex((img) => img.variant_id === id);
+    let image;
+    if (Array.isArray(images) && images.length > 0) {
+      image = images.findIndex((img) => img.variant_id === id);
+    } else {
+      image = -1;
+    }
     const stock = variants.stock;
     const quantity = 1; // Add logic to handle quantity input or use a default value
 

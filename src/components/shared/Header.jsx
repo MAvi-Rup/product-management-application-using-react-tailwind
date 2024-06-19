@@ -1,17 +1,7 @@
-import React, { useEffect, useState } from "react";
 import { FaSignOutAlt, FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
-const Header = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    // Simulating user authentication status check
-    // This should be updated based on your actual authentication logic
-    const userLoggedIn = false; // Replace with actual logic
-    setIsLoggedIn(userLoggedIn);
-  }, []);
-
+const Header = ({ isLoggedIn, setIsLoggedIn }) => {
   const handleLogout = () => {
     // Perform logout logic (e.g., call an API, update state)
     setIsLoggedIn(false);

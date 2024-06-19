@@ -1,33 +1,27 @@
 import axios from "axios";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    password: "",
-    image: null,
-  });
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "image") {
-      setFormData({ ...formData, [name]: files[0] });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (formData) => {
+    const { firstName, lastName, email, password, image } = formData;
 
     const formDataToSend = new FormData();
-    for (const key in formData) {
-      formDataToSend.append(key, formData[key]);
+    formDataToSend.append("first_name", firstName);
+    formDataToSend.append("last_name", lastName);
+    formDataToSend.append("email", email);
+    formDataToSend.append("password", password);
+    if (image && image.length > 0) {
+      formDataToSend.append("image", image[0]);
     }
 
     console.log(formDataToSend); // Log the FormData object
@@ -60,7 +54,7 @@ const RegisterPage = () => {
       <div className="bg-white p-8 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold mb-4">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-4">
             <label htmlFor="first_name" className="block font-bold mb-2">
               First Name
@@ -68,12 +62,12 @@ const RegisterPage = () => {
             <input
               type="text"
               id="first_name"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-              required
+              {...register("firstName", { required: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {errors.firstName && (
+              <p className="text-red-500">First Name is required</p>
+            )}
           </div>
           <div className="mb-4">
             <label htmlFor="last_name" className="block font-bold mb-2">
@@ -82,12 +76,12 @@ const RegisterPage = () => {
             <input
               type="text"
               id="last_name"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              required
+              {...register("lastName", { required: true })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {errors.lastName && (
+              <p className="text-red-500">Last Name is required</p>
+            )}
           </div>
           <div className="mb-4">
             <label htmlFor="email" className="block font-bold mb-2">
@@ -96,12 +90,15 @@ const RegisterPage = () => {
             <input
               type="email"
               id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
+              {...register("email", {
+                required: true,
+                pattern: /^\S+@\S+$/i,
+              })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {errors.email && (
+              <p className="text-red-500">Please enter a valid email address</p>
+            )}
           </div>
           <div className="mb-4">
             <label htmlFor="password" className="block font-bold mb-2">
@@ -110,12 +107,19 @@ const RegisterPage = () => {
             <input
               type="password"
               id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
+              {...register("password", {
+                required: true,
+                pattern: /^(?=.*[A-Z]).{8,}$/,
+              })}
+              autoComplete="current-password"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            {errors.password && (
+              <p className="text-red-500">
+                Password must be at least 8 characters long and contain at least
+                one uppercase letter
+              </p>
+            )}
           </div>
           <div className="mb-4">
             <label htmlFor="image" className="block font-bold mb-2">
@@ -124,9 +128,8 @@ const RegisterPage = () => {
             <input
               type="file"
               id="image"
-              name="image"
+              {...register("image")}
               accept="image/*"
-              onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

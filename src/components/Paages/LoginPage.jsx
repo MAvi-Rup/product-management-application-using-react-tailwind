@@ -1,23 +1,51 @@
-import React, { useState } from "react";
+import axios from "axios";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 const LoginPage = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    // Perform login logic (e.g., call an API)
-    // If login is successful:
-    setIsLoggedIn(true);
-    navigate("/");
+
+    try {
+      const response = await axios.post("https://api.zonesparks.org/login/", {
+        email,
+        password,
+      });
+
+      if (response.status === 200) {
+        const { email, full_name, tokens } = response.data;
+
+        localStorage.setItem("accessToken", tokens.access_token);
+        localStorage.setItem("refreshToken", tokens.refresh_token);
+
+        setIsLoggedIn(true);
+
+        console.log(`Welcome, ${full_name}!`);
+
+        navigate("/");
+      } else {
+        setError("Login failed. Please try again.");
+      }
+    } catch (error) {
+      if (error.response) {
+        const { data } = error.response;
+        setError(data.message || "Login failed. Please try again.");
+      } else {
+        setError("An error occurred during login.");
+      }
+    }
   };
 
   return (
     <div className="flex justify-center items-center h-screen">
       <div className="bg-white p-8 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold mb-4">Login</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label htmlFor="email" className="block font-bold mb-2">
