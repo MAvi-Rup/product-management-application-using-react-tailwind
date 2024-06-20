@@ -1,11 +1,12 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import ProductFilter from "../Products/ProductFilter";
 import ProductList from "../Products/ProductList";
 import ProductSearchBar from "../Products/ProductSearchBar";
 import Loading from "../shared/Loading";
 
-const ProductPage = () => {
+const ProductPage = ({ updateCartItemCount }) => {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
@@ -16,28 +17,9 @@ const ProductPage = () => {
   });
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const loaderRef = useRef(null);
   const [userCart, setUserCart] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const loaderRef = React.useRef(null);
-
   const accessToken = localStorage.getItem("accessToken");
-
-  useEffect(() => {
-    setPage(0);
-    setProducts([]);
-    setHasMore(true);
-    fetchProducts(true);
-  }, [searchQuery, filters]);
-
-  useEffect(() => {
-    if (page > 0) {
-      fetchProducts();
-    }
-  }, [page]);
-
-  useEffect(() => {
-    fetchUserCart();
-  }, []);
 
   const fetchProducts = async (reset = false) => {
     let baseUrl = "https://api.zonesparks.org/products/";
@@ -76,157 +58,145 @@ const ProductPage = () => {
     }
   };
 
-  const fetchUserCart = async () => {
-    try {
-      const response = await axios.get("https://api.zonesparks.org/cart/", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      setUserCart(response.data);
-    } catch (error) {
-      console.error("Error fetching user cart:", error);
-    }
-  };
-
-  const addToCart = async (cartId, productId, color, size, image, quantity) => {
+  const addToCart = async (
+    cartId,
+    productId,
+    color,
+    size,
+    imageIndex,
+    quantity
+  ) => {
     try {
       const response = await axios.post(
         `https://api.zonesparks.org/cart/${cartId}/items/`,
         {
           product_id: productId,
-          color,
-          size,
-          image,
-          quantity,
+          color: color || "N/A",
+          size: size || "N/A",
+          image: imageIndex,
+          quantity: quantity,
         },
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
           },
         }
       );
       return response.data;
     } catch (error) {
-      console.error("Error adding product to cart:", error);
-      return null;
-    }
-  };
-
-  const updateCartItemQuantity = async (cartId, itemId, newQuantity) => {
-    try {
-      const response = await axios.patch(
-        `https://api.zonesparks.org/cart/${cartId}/items/`,
-        [
-          {
-            id: itemId,
-            quantity: newQuantity,
-          },
-        ],
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+      console.error(
+        "Error adding product to cart:",
+        error.response?.data || error.message
       );
-      return response.data;
-    } catch (error) {
-      console.error("Error updating cart item quantity:", error);
-      return null;
+      throw error;
     }
   };
 
   const handleAddToCart = async (product, variant) => {
-    const { id, color, size, images, variants } = variant;
-    let image;
-    if (Array.isArray(images) && images.length > 0) {
-      image = images.findIndex((img) => img.variant_id === id);
-    } else {
-      image = -1;
+    const { id, color, size, stock } = variant;
+    let imageIndex = 0;
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      imageIndex = product.images.findIndex((img) => img.variant_id === id);
+      imageIndex = imageIndex !== -1 ? imageIndex : 0;
     }
-    const stock = variants.stock;
     const quantity = 1; // Add logic to handle quantity input or use a default value
 
     if (stock >= quantity) {
-      const cartId = userCart.length > 0 ? userCart[0].id : null;
-      const newItem = await addToCart(
-        cartId,
-        product.id,
-        color,
-        size,
-        image,
-        quantity
-      );
-      if (newItem) {
-        setUserCart((prevCart) => {
-          if (prevCart.length === 0) {
-            return [
-              {
-                id: newItem.id,
-                items: [newItem],
-                grand_total: newItem.sub_total,
-              },
-            ];
-          } else {
-            const updatedCart = { ...prevCart[0] };
-            updatedCart.items.push(newItem);
-            updatedCart.grand_total += newItem.sub_total;
-            return [updatedCart];
-          }
+      try {
+        // First, fetch or create the user's cart
+        let cartResponse = await axios.get("https://api.zonesparks.org/cart/", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
+
+        let cartId;
+        if (cartResponse.data.length === 0) {
+          // If no cart exists, create one
+          const createCartResponse = await axios.post(
+            "https://api.zonesparks.org/cart/",
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+          cartId = createCartResponse.data[0].id;
+        } else {
+          cartId = cartResponse.data[0].id;
+        }
+
+        // Now add the item to the cart
+        const newItem = await addToCart(
+          cartId,
+          product.id,
+          color,
+          size,
+          imageIndex,
+          quantity
+        );
+
+        if (newItem) {
+          setUserCart((prevCart) => {
+            if (prevCart.length === 0) {
+              return [
+                {
+                  id: cartId,
+                  items: [newItem],
+                  grand_total: newItem.sub_total,
+                },
+              ];
+            } else {
+              const updatedCart = { ...prevCart[0] };
+              updatedCart.items.push(newItem);
+              updatedCart.grand_total += newItem.sub_total;
+              return [updatedCart];
+            }
+          });
+          updateCartItemCount();
+          toast.success("Item added to cart successfully");
+        }
+      } catch (error) {
+        console.error("Error adding to cart:", error.response?.data || error);
+
+        if (
+          error.response?.data?.error &&
+          Array.isArray(error.response.data.error)
+        ) {
+          const errorMessage = error.response.data.error[0];
+          if (errorMessage.includes("Quantity exceeds available stock")) {
+            toast.error(
+              "Sorry, the requested quantity exceeds the available stock."
+            );
+          } else {
+            toast.error(errorMessage);
+          }
+        } else {
+          toast.error(
+            "An error occurred while adding the item to the cart. Please try again."
+          );
+        }
       }
     } else {
-      console.error("Product is out of stock");
+      toast.error("Sorry, this item is currently out of stock.");
     }
   };
 
-  const handleUpdateCartItemQuantity = async (itemId, newQuantity) => {
-    const cartId = userCart.length > 0 ? userCart[0].id : null;
-    const updatedItem = await updateCartItemQuantity(
-      cartId,
-      itemId,
-      newQuantity
-    );
-    if (updatedItem) {
-      setUserCart((prevCart) => {
-        const updatedCart = { ...prevCart[0] };
-        const updatedItems = updatedCart.items.map((item) =>
-          item.id === itemId ? updatedItem : item
-        );
-        updatedCart.items = updatedItems;
-        updatedCart.grand_total = updatedItems.reduce(
-          (total, item) => total + item.sub_total,
-          0
-        );
-        return [updatedCart];
-      });
+  const handleObserver = (entities) => {
+    const target = entities[0];
+    if (target.isIntersecting && hasMore) {
+      setPage((prev) => prev + 1);
     }
-  };
-
-  const handleRemoveFromCart = (itemId) => {
-    setUserCart((prevCart) => {
-      const updatedCart = { ...prevCart[0] };
-      const updatedItems = updatedCart.items.filter(
-        (item) => item.id !== itemId
-      );
-      updatedCart.items = updatedItems;
-      updatedCart.grand_total = updatedItems.reduce(
-        (total, item) => total + item.sub_total,
-        0
-      );
-      return [updatedCart];
-    });
   };
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          setPage((prevPage) => prevPage + 1);
-        }
-      },
-      { rootMargin: "100px" }
-    );
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "20px",
+      threshold: 1.0,
+    });
 
     if (loaderRef.current) {
       observer.observe(loaderRef.current);
@@ -239,70 +209,34 @@ const ProductPage = () => {
     };
   }, [hasMore]);
 
+  useEffect(() => {
+    const initialFetch = async () => {
+      await fetchProducts(true);
+    };
+    setPage(0);
+    setProducts([]);
+    setHasMore(true);
+    initialFetch();
+  }, [searchQuery, filters]);
+
+  useEffect(() => {
+    if (page > 0) {
+      fetchProducts();
+    }
+  }, [page]);
+
   return (
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-4">
           <ProductFilter filters={filters} setFilters={setFilters} />
-          <div className="mt-4">
-            <h2 className="text-xl font-bold mb-2">Cart</h2>
-            {isLoading ? (
-              <p>Loading...</p>
-            ) : userCart.length === 0 ? (
-              <p>Your cart is empty.</p>
-            ) : (
-              <ul>
-                {userCart[0].items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex justify-between items-center mb-2"
-                  >
-                    {item.product.title}
-                    <div>
-                      <button
-                        onClick={() =>
-                          handleUpdateCartItemQuantity(
-                            item.id,
-                            item.quantity - 1
-                          )
-                        }
-                        disabled={item.quantity === 1}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
-                      >
-                        -
-                      </button>
-                      <span className="mx-2">{item.quantity}</span>
-                      <button
-                        onClick={() =>
-                          handleUpdateCartItemQuantity(
-                            item.id,
-                            item.quantity + 1
-                          )
-                        }
-                        disabled={item.quantity === item.product.variants.stock}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveFromCart(item.id)}
-                      className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
         <div className="col-span-8">
           <ProductSearchBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
-          <ProductList products={products} addToCart={handleAddToCart} />
+          <ProductList products={products} handleAddToCart={handleAddToCart} />
           <div ref={loaderRef}>
             {hasMore && <Loading />}
             {!hasMore && <p>No products left</p>}

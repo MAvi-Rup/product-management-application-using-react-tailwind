@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const ProductCard = ({ product, addToCart }) => {
+const ProductCard = ({ product, handleAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
 
   const handleVariantChange = (variantId) => {
@@ -48,7 +48,9 @@ const ProductCard = ({ product, addToCart }) => {
       </div>
 
       <button
-        onClick={() => addToCart(product, product.variants[selectedVariant])}
+        onClick={() =>
+          handleAddToCart(product, product.variants[selectedVariant])
+        }
         className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md"
       >
         Add to Cart
