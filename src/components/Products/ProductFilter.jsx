@@ -106,7 +106,7 @@ const ProductFilter = ({ filters, setFilters }) => {
 
   const handlePriceRangeChange = (e, index) => {
     const newPriceRange = [...priceRange];
-    newPriceRange[index] = e.target.value;
+    newPriceRange[index] = Math.max(0, parseInt(e.target.value) || 0);
     setPriceRange(newPriceRange);
     setFilters({ ...filters, priceRange: newPriceRange });
   };

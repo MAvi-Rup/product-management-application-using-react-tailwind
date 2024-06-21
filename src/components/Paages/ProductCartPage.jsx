@@ -1,8 +1,9 @@
 import axios from "axios";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import Loading from "../shared/Loading";
 
-const ProductCartPage = () => {
+const ProductCartPage = ({ updateCartItemCount }) => {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +12,6 @@ const ProductCartPage = () => {
 
   const fetchCart = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await axios.get("https://api.zonesparks.org/cart/", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -31,7 +31,7 @@ const ProductCartPage = () => {
     if (!cart || !cart.id) return;
 
     try {
-      const response = await axios.patch(
+      await axios.patch(
         `https://api.zonesparks.org/cart/${cart.id}/items/`,
         [{ id: itemId, quantity: newQuantity }],
         {
@@ -42,45 +42,13 @@ const ProductCartPage = () => {
         }
       );
 
-      if (response.status === 200) {
-        fetchCart(); // Refresh cart data
-        toast.success("Quantity updated successfully");
-      } else {
-        throw new Error("Unexpected response status");
-      }
+      // Fetch the updated cart data
+      await fetchCart();
+      updateCartItemCount();
+      toast.success("Quantity updated successfully");
     } catch (err) {
       console.error("Error updating quantity:", err);
-      if (err.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error("Response data:", err.response.data);
-        console.error("Response status:", err.response.status);
-        console.error("Response headers:", err.response.headers);
-
-        if (err.response.status === 403) {
-          toast.error(
-            "You do not have permission to update the cart. Please try logging in again."
-          );
-        } else {
-          toast.error(
-            `Failed to update quantity: ${
-              err.response.data.message || "Unknown error"
-            }`
-          );
-        }
-      } else if (err.request) {
-        // The request was made but no response was received
-        console.error("No response received:", err.request);
-        toast.error(
-          "No response from server. Please check your internet connection."
-        );
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error("Error setting up request:", err.message);
-        toast.error(
-          "An error occurred while updating quantity. Please try again."
-        );
-      }
+      toast.error("Failed to update quantity. Please try again.");
     }
   };
 
@@ -94,13 +62,22 @@ const ProductCartPage = () => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      fetchCart(); // Refresh cart data
+
+      // Fetch the updated cart data
+      await fetchCart();
+      updateCartItemCount();
       toast.success("Item removed from cart");
     } catch (err) {
       toast.error("Failed to remove item. Please try again.");
     }
   };
 
+  if (loading)
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
   if (error) return <div>{error}</div>;
   if (!cart || cart.items.length === 0) return <div>Your cart is empty.</div>;
 
@@ -114,7 +91,7 @@ const ProductCartPage = () => {
         >
           <div className="flex items-center">
             <img
-              src={item.product.images[item.image].thumb}
+              src={item.product.images[item.image]?.thumb}
               alt={item.product.title}
               className="w-20 h-20 object-cover mr-4"
             />
@@ -123,7 +100,7 @@ const ProductCartPage = () => {
               <p>
                 Size: {item.size}, Color: {item.color}
               </p>
-              <p>Price: ${item.product.selling_price}</p>
+              <p>Price: ${parseFloat(item.product.selling_price).toFixed(2)}</p>
               <p
                 className={
                   item.product.variants.stock > 0
@@ -168,7 +145,7 @@ const ProductCartPage = () => {
       ))}
       <div className="mt-4 text-right">
         <p className="text-xl font-bold">
-          Total: ${cart.grand_total.toFixed(2)}
+          Total: ${parseFloat(cart.grand_total).toFixed(2)}
         </p>
       </div>
     </div>

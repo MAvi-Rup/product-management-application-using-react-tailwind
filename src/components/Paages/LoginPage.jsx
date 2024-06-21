@@ -1,52 +1,42 @@
 import axios from "axios";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const LoginPage = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(""); // Added error state
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setError(""); // Clear any previous errors
     try {
       const response = await axios.post("https://api.zonesparks.org/login/", {
         email,
         password,
       });
-
-      if (response.status === 200) {
-        const { email, full_name, tokens } = response.data;
-
-        localStorage.setItem("accessToken", tokens.access_token);
-        localStorage.setItem("refreshToken", tokens.refresh_token);
-
-        setIsLoggedIn(true);
-
-        console.log(`Welcome, ${full_name}!`);
-
-        navigate("/");
-      } else {
-        setError("Login failed. Please try again.");
-      }
+      const { access_token } = response.data.tokens;
+      localStorage.setItem("accessToken", access_token);
+      setIsLoggedIn(true);
+      toast.success("Logged in successfully");
+      // Redirect to the page they were trying to access, or to the home page
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
     } catch (error) {
-      if (error.response) {
-        const { data } = error.response;
-        setError(data.message || "Login failed. Please try again.");
-      } else {
-        setError("An error occurred during login.");
-      }
+      console.error("Login failed:", error);
+      setError("Login failed. Please check your credentials and try again.");
+      toast.error("Login failed. Please check your credentials and try again.");
     }
   };
-
   return (
     <div className="flex justify-center items-center h-screen">
       <div className="bg-white p-8 rounded-lg shadow-md">
         <h2 className="text-2xl font-bold mb-4">Login</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block font-bold mb-2">
               Email

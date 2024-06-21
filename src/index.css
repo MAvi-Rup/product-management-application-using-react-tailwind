@@ -3,7 +3,7 @@
 @tailwind utilities;
 /* src/index.css */
 .loader {
-  border-top-color: #3490dc; /* Tailwind blue-500 */
+  border-top-color: #3490dc;
   animation: spinner 1.5s linear infinite;
 }
 

@@ -1,6 +1,5 @@
-import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
-import { toast } from "react-toastify";
+import { handleAddToCart } from "../Functions/functionApi";
 import ProductFilter from "../Products/ProductFilter";
 import ProductList from "../Products/ProductList";
 import ProductSearchBar from "../Products/ProductSearchBar";
@@ -18,8 +17,6 @@ const ProductPage = ({ updateCartItemCount }) => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
-  const [userCart, setUserCart] = useState([]);
-  const accessToken = localStorage.getItem("accessToken");
 
   const fetchProducts = async (reset = false) => {
     let baseUrl = "https://api.zonesparks.org/products/";
@@ -57,131 +54,8 @@ const ProductPage = ({ updateCartItemCount }) => {
       });
     }
   };
-
-  const addToCart = async (
-    cartId,
-    productId,
-    color,
-    size,
-    imageIndex,
-    quantity
-  ) => {
-    try {
-      const response = await axios.post(
-        `https://api.zonesparks.org/cart/${cartId}/items/`,
-        {
-          product_id: productId,
-          color: color || "N/A",
-          size: size || "N/A",
-          image: imageIndex,
-          quantity: quantity,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.error(
-        "Error adding product to cart:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  };
-
-  const handleAddToCart = async (product, variant) => {
-    const { id, color, size, stock } = variant;
-    let imageIndex = 0;
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      imageIndex = product.images.findIndex((img) => img.variant_id === id);
-      imageIndex = imageIndex !== -1 ? imageIndex : 0;
-    }
-    const quantity = 1; // Add logic to handle quantity input or use a default value
-
-    if (stock >= quantity) {
-      try {
-        // First, fetch or create the user's cart
-        let cartResponse = await axios.get("https://api.zonesparks.org/cart/", {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        let cartId;
-        if (cartResponse.data.length === 0) {
-          // If no cart exists, create one
-          const createCartResponse = await axios.post(
-            "https://api.zonesparks.org/cart/",
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
-          cartId = createCartResponse.data[0].id;
-        } else {
-          cartId = cartResponse.data[0].id;
-        }
-
-        // Now add the item to the cart
-        const newItem = await addToCart(
-          cartId,
-          product.id,
-          color,
-          size,
-          imageIndex,
-          quantity
-        );
-
-        if (newItem) {
-          setUserCart((prevCart) => {
-            if (prevCart.length === 0) {
-              return [
-                {
-                  id: cartId,
-                  items: [newItem],
-                  grand_total: newItem.sub_total,
-                },
-              ];
-            } else {
-              const updatedCart = { ...prevCart[0] };
-              updatedCart.items.push(newItem);
-              updatedCart.grand_total += newItem.sub_total;
-              return [updatedCart];
-            }
-          });
-          updateCartItemCount();
-          toast.success("Item added to cart successfully");
-        }
-      } catch (error) {
-        console.error("Error adding to cart:", error.response?.data || error);
-
-        if (
-          error.response?.data?.error &&
-          Array.isArray(error.response.data.error)
-        ) {
-          const errorMessage = error.response.data.error[0];
-          if (errorMessage.includes("Quantity exceeds available stock")) {
-            toast.error(
-              "Sorry, the requested quantity exceeds the available stock."
-            );
-          } else {
-            toast.error(errorMessage);
-          }
-        } else {
-          toast.error(
-            "An error occurred while adding the item to the cart. Please try again."
-          );
-        }
-      }
-    } else {
-      toast.error("Sorry, this item is currently out of stock.");
-    }
+  const handleAddToCartWrapper = (product, variant) => {
+    handleAddToCart(product, variant, updateCartItemCount);
   };
 
   const handleObserver = (entities) => {
@@ -236,7 +110,10 @@ const ProductPage = ({ updateCartItemCount }) => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
-          <ProductList products={products} handleAddToCart={handleAddToCart} />
+          <ProductList
+            products={products}
+            handleAddToCart={handleAddToCartWrapper}
+          />
           <div ref={loaderRef}>
             {hasMore && <Loading />}
             {!hasMore && <p>No products left</p>}

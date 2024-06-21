@@ -7,8 +7,10 @@ import LoginPage from "./components/Paages/LoginPage";
 import ProductCartPage from "./components/Paages/ProductCartPage";
 import ProductPage from "./components/Paages/ProductPage";
 import RegisterPage from "./components/Paages/RegistrationPage";
+import SingleProductPage from "./components/Paages/SingleProductPage";
 import Footer from "./components/shared/Footer";
 import Header from "./components/shared/Header";
+import ProtectedRoute from "./components/shared/ProtectedRoute";
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
@@ -55,7 +57,20 @@ const App = () => {
           path="/"
           element={<ProductPage updateCartItemCount={fetchCartItemCount} />}
         />
-        <Route path="/cart" element={<ProductCartPage />} />
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+              <ProductCartPage updateCartItemCount={fetchCartItemCount} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products/:productId"
+          element={
+            <SingleProductPage updateCartItemCount={fetchCartItemCount} />
+          }
+        />
         <Route
           path="/login"
           element={<LoginPage setIsLoggedIn={setIsLoggedIn} />}

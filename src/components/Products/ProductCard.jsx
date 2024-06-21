@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const ProductCard = ({ product, handleAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
@@ -12,16 +13,18 @@ const ProductCard = ({ product, handleAddToCart }) => {
 
   return (
     <div className="border border-gray-300 rounded-md p-4">
-      <img
-        src={
-          product.images.find((image) => image.variant_id === selectedVariant)
-            ?.thumb || product.images[0].thumb
-        }
-        alt={product.title}
-        className="w-full h-48 object-cover mb-4"
-      />
-      <h2 className="text-lg font-semibold mb-2">{product.title}</h2>
-      <p className="text-gray-500 mb-2">{product.short_desc}</p>
+      <Link to={`/products/${product.id}`}>
+        <img
+          src={
+            product.images[product.variants[selectedVariant].image]?.thumb ||
+            product.images[0].thumb
+          }
+          alt={product.title}
+          className="w-full h-48 object-cover mb-4"
+        />
+        <h2 className="text-lg font-semibold mb-2">{product.title}</h2>
+        <p className="text-gray-500 mb-2">{product.short_desc}</p>
+      </Link>
       <p className="text-gray-900 font-bold">
         ${product.variants[selectedVariant].selling_price}
       </p>
