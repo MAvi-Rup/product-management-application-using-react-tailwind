@@ -1,8 +1,23 @@
-# React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Product Management Application using React.js, Tailwind CSS
 
-Currently, two official plugins are available:
+This is a project where user can login and register. Show different types of products and also Adding those products in his cart. There we use react-router-dom, react-query, tailwind css, react state management, multi level product filtering, axios for post and get data and manymore. here given the live site link.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Live Site Link - https://moonlit-blancmange-3b7e68.netlify.app/
+
+
+
+
+
+
+## Features
+
+- Login and Register.
+- View varites of products in productlist.
+- Add Product to their cart. (Authenticatiion required)
+- Multilevel product filtering.
+- Search a individual product.
+- Delete and update their product cart.
+- View individual product page and also show related product items there.
+
+
