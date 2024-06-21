@@ -84,11 +84,13 @@ const ProductCartPage = ({ updateCartItemCount }) => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Your Cart</h1>
+      {console.log(cart.items)}
       {cart.items.map((item) => (
         <div
           key={item.id}
           className="border-b py-4 flex items-center justify-between"
         >
+          {console.log(item)}
           <div className="flex items-center">
             <img
               src={item.product.images[item.image]?.thumb}
@@ -100,7 +102,7 @@ const ProductCartPage = ({ updateCartItemCount }) => {
               <p>
                 Size: {item.size}, Color: {item.color}
               </p>
-              <p>Price: ${parseFloat(item.product.selling_price).toFixed(2)}</p>
+              <p>Price: ${parseFloat(item.sub_total).toFixed(2)}</p>
               <p
                 className={
                   item.product.variants.stock > 0
