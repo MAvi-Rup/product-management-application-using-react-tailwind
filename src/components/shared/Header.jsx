@@ -11,6 +11,7 @@ const Header = ({
   const handleLogout = () => {
     // Perform logout logic (e.g., call an API, update state)
     setIsLoggedIn(false);
+    localStorage.removeItem("accessToken");
   };
 
   useEffect(() => {
